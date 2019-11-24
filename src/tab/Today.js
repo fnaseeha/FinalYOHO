@@ -8,11 +8,11 @@ import {
   ImageBackground,
   Dimensions,
   TouchableOpacity,
-  AsyncStorage,
   Alert,
   StatusBar,
-  ScrollView,
+  ScrollView, BackHandler,
 } from 'react-native';
+import AsyncStorage from '@react-native-community/async-storage';
 import { createStackNavigator, createAppContainer } from 'react-navigation';
 import axios from 'axios';
 import { Button, } from 'react-native-elements';
@@ -22,7 +22,8 @@ import {
 } from 'native-base';
 import DetailScreen from '../screen/DetailScreen';
 const isIos = Platform.OS === 'ios';
-import moment from 'moment'; 
+import moment from 'moment';
+import Spinner from 'react-native-loading-spinner-overlay';
 export default class Today extends React.Component {
 
   constructor(props) {
@@ -56,6 +57,8 @@ export default class Today extends React.Component {
       _3rdDayClicked: false,
       _4thDayClicked: false,
       _5thDayClicked: false,
+      isLoading: false,
+      hasData:false,
     };
     this.getData = this.getData.bind(this);
     this.ClickDay = this.ClickDay.bind(this);
@@ -63,16 +66,36 @@ export default class Today extends React.Component {
 
   }
 
+  handleBackButton = () => {
+    console.log('back');
+    return true;
+    // BackHandler.exitApp();
+  //  this.props.navigation.goBack(null);
+  }
 
+  
 
+  ClickDay = async(text, dates) => {
 
-  ClickDay = (text, dates) => {
+    try{
+      AsyncStorage.setItem('BookingSuccessDetails', null);
+      let BookingSuccessDetails_ = await AsyncStorage.getItem('BookingSuccessDetails');
+      let BookingSuccessDetails = JSON.parse(BookingSuccessDetails_);
+      console.log('Booking');
+      console.log(BookingSuccessDetails);
+      console.log('Booking');
 
+      }catch(e){
+        console.log(e);
+      }
     let today_ = new Date();
     const today_Date = today_.getFullYear() + '-' + (today_.getMonth() + 1) + '-' + (today_.getDate());
 
     console.log("strt " + text + " :  end " + dates);
 
+    this.setState({
+      isLoading:true
+    });
     let SendData =
       {
         "checkin": dates,
@@ -86,18 +109,27 @@ export default class Today extends React.Component {
         },
       })
       .then(res => {
+
         this.setState({
           DATAS: res.data,
+          isLoading:false,
+          hasData:true,
         });
+        if(res.data.length ==0){
+          this.setState({
+           hasData:false
+          })
+         }
       })
-      .catch(e=>{
+      .catch(e => {
         console.log(e);
-        if (e.includes('Network')) {
-          alert('Please Check your Internet connection');
-      }else{
-        Alert.alert('Error');
-      }
-    });
+        this.setState({
+          isLoading:false
+        });
+          Alert.alert('Please Check your Internet connection');
+        
+      });
+      
     switch (text) {
 
       case "Today": {
@@ -157,16 +189,42 @@ export default class Today extends React.Component {
 
   }
 
-  componentDidMount() {
-    console.log("getting data ....");
+  componentDidMount = async () => {
+
+    
+    // try {
+
+    //   let InitialDetails = await AsyncStorage.getItem('InitialDetails');
+    //   let initials = JSON.parse(InitialDetails);
+
+    //  // console.log(initials.customerId);
+    //   // const customerId = initials.customerId;
+    //   initials.customerId != null
+    //     ? this.getData()
+    //     : this.props.navigation.navigate('StartScreen')
+    // } catch (e) {
+    //   // handle error
+    //   console.log(e);
+    //   this.props.navigation.navigate('StartScreen');
+    // }
+    BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
     this.getData();
   }
+
+  // componentDidMount() {
+  //   console.log("getting data ....");
+  //   this.getData();
+
+  // }
   getData() {
     //today
     var today = new Date();
     var date_today = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + (today.getDate());
-  
+
     console.log(date_today);
+    this.setState({
+      isLoading:true
+    });
 
     axios
       .post(this.state.servername, {
@@ -178,18 +236,27 @@ export default class Today extends React.Component {
       .then(res => {
         console.log(res.data);
         this.setState({
+          isLoading:false
+        });
+        this.setState({
           DATAS: res.data,
-          CheckIndate:date_today
+          CheckIndate: date_today,
+          hasData:true
         });
       })
       .catch(error => {
+        this.setState({
+          isLoading:false
+        });
+        alert('Please Check your Internet connection');
         console.error(error);
-        if (error.includes('Network')) {
-          alert('Please Check your Internet connection');
-      }else{
-        Alert.alert('Error');
-      }
+       
       });
+      if(res.data.length ==0){
+        this.setState({
+         hasData:false
+        })
+       }
   }
 
   static navigationOptions = {
@@ -202,24 +269,29 @@ export default class Today extends React.Component {
     // this.props.navigation.goBack();
   };
 
-  PressCard = (text) => {
+  PressCard = (text, room_left) => {
 
-    console.log("* id " + text);
+    console.log("* id " + text + "room_left " + room_left);
     console.log("* CheckIndate " + this.state.CheckIndate);
     console.log("* CheckOutdate " + this.state.CheckOutdate);
-   
+
     const currentDate = moment().format("YYYY-MM-DD");
     console.log(currentDate);
-    if (this.state.CheckIndate == undefined) {
-      this.setState({
-        CheckIndate: currentDate
-      });
-    }
-    this.props.navigation.navigate('DetailScreen', {
-      id: text,
-      CheckInDate: this.state.CheckIndate,
-    });
+    if (room_left != "0") {
 
+      if (this.state.CheckIndate == undefined) {
+        this.setState({
+          CheckIndate: currentDate
+        });
+      }
+      this.props.navigation.navigate('DetailScreen', {
+        id: text,
+        CheckInDate: this.state.CheckIndate,
+        room_left: room_left,
+      });
+    } else {
+      alert('No Room Available');
+    }
   };
 
   render() {
@@ -230,9 +302,14 @@ export default class Today extends React.Component {
       let ss = NewsData.thumbnail
       let c = 'https://www.yohobed.com/images/property/thumbnail/' + ss
       let id = NewsData.id
+      let room_left = NewsData.rooms_left
+      let room_left_label = room_left + " Rooms left";
+      if (room_left == "0") {
+        room_left_label = "No Rooms Availbale";
+      }
       return (
 
-        <TouchableOpacity key={id} onPress={() => { this.PressCard(id) }}>
+        <TouchableOpacity key={id} onPress={() => { this.PressCard(id, room_left) }}>
           <Card>
             <CardItem cardBody>
               <Image source={{ uri: c }} style={{ height: 200, width: null, flex: 1 }} />
@@ -251,7 +328,7 @@ export default class Today extends React.Component {
               <Right>
                 <Body>
                   <Text style={{ fontSize: 18, marginBottom: 8 }}>LKR {NewsData.pricelkr}</Text>
-                  <Text style={[styles.smallLinetext, { color: 'red' }]} note> {NewsData.rooms_left} Rooms left</Text>
+                  <Text style={[styles.smallLinetext, { color: 'red' }]} note> {room_left_label} </Text>
                 </Body>
               </Right>
             </CardItem>
@@ -259,7 +336,31 @@ export default class Today extends React.Component {
         </TouchableOpacity>
       )
     });
+    if(this.state.hasData==false){
+      console.log('this.state.hasData');
+      let DATAS2=  [{
+        id: 1733,
+      }];
+       display = DATAS2.map((NewsData, index) => {
 
+        let ss = NewsData.thumbnail
+        let c = 'https://www.yohobed.com/images/property/thumbnail/' + ss;
+  
+        return (
+  
+          <TouchableOpacity key={NewsData.id}>
+            <Card>
+              {/* <CardItem cardBody>
+              
+                <Image source={require('../image/nodata.jpg')} style={{ height:  Dimensions.get('window').height-200, width: null, flex: 1 }} />
+              </CardItem> */}
+              
+            </Card>
+          </TouchableOpacity>
+  
+        )
+      });
+    }
 
     Date.prototype.addDays = function (days) {
       var date = new Date(this.valueOf());
@@ -343,6 +444,23 @@ export default class Today extends React.Component {
         </View>
         <View style={{ flex: 10 }}>
           <ScrollView>
+            <View style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: 0.5,
+            }}>
+              <Spinner
+                visible={this.state.isLoading}
+                textContent={'Loading...'}
+                textStyle={{ color: 'white' }}
+              />
+            </View>
+
             {display}
           </ScrollView>
         </View>

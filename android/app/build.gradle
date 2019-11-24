@@ -128,10 +128,10 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.bookingfinal"
+        applicationId "com.yohobed.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
+        versionCode 34
         versionName "1"
     }
      signingConfigs {

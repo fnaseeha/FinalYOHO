@@ -1,8 +1,8 @@
 platform :ios, '9.0'
 require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
 
-target 'BookingFinal' do
-  # Pods for BookingFinal
+target 'yohobed' do
+  # Pods for yohobed
   pod 'FBLazyVector', :path => "../node_modules/react-native/Libraries/FBLazyVector"
   pod 'FBReactNativeSpec', :path => "../node_modules/react-native/Libraries/FBReactNativeSpec"
   pod 'RCTRequired', :path => "../node_modules/react-native/Libraries/RCTRequired"
@@ -34,7 +34,7 @@ target 'BookingFinal' do
   pod 'glog', :podspec => '../node_modules/react-native/third-party-podspecs/glog.podspec'
   pod 'Folly', :podspec => '../node_modules/react-native/third-party-podspecs/Folly.podspec'
 
-  target 'BookingFinalTests' do
+  target 'yohobedTests' do
     inherit! :search_paths
     # Pods for testing
   end
@@ -42,10 +42,10 @@ target 'BookingFinal' do
   use_native_modules!
 end
 
-target 'BookingFinal-tvOS' do
-  # Pods for BookingFinal-tvOS
+target 'yohobed-tvOS' do
+  # Pods for yohobed-tvOS
 
-  target 'BookingFinal-tvOSTests' do
+  target 'yohobed-tvOSTests' do
     inherit! :search_paths
     # Pods for testing
   end

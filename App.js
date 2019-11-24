@@ -11,32 +11,46 @@ import Login from './src/screen/LoginScreens/Login';
 import SignUp from './src/screen/LoginScreens/SignUp';
 import BookingSuccess from './src/screen/BookingSuccess';
 import Report from './src/bottomTab/Report';
-const Apps = createStackNavigator({
+import PopUpWindow from './src/screen/PopUpWindow';
+import ProgressWindow from './src/screen/ProgressWindow';
+import 'react-native-gesture-handler';
+import FirstScreen from './src/screen/FirstScreen';
 
-  StartScreen: { screen: StartScreen },
-  OtpScreen: { screen: OtpScreen },
+const Apps = createStackNavigator({
+  
+  FirstScreen: { screen: FirstScreen },
+
   MainScreen: {
     screen: MainScreen,
     navigationOptions: {
       header: null,
     },
   },
-  
-  
-  Login: { screen: Login },
-  SignUp: { screen: SignUp },
-  Report: { screen: Report },
-  BookingSuccess:{screen: BookingSuccess},
-  
+
+  DetailScreen: { screen: DetailScreen },
   HomeScreen: {
     screen: HomeScreen,
     navigationOptions: {
       header: null,
     },
   },
+  StartScreen: { screen: StartScreen },
+  ProgressWindow: { screen: ProgressWindow },
+ 
+  
+  OtpScreen: { screen: OtpScreen },
+ 
+  
+  PopUpWindow:{screen:PopUpWindow},
+  Login: { screen: Login },
+  SignUp: { screen: SignUp },
+  Report: { screen: Report },
+  BookingSuccess:{screen: BookingSuccess},
+  
  
  
-  DetailScreen: { screen: DetailScreen },
+ 
+ 
   
   
 });

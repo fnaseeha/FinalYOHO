@@ -1,10 +1,10 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Text, View,BackHandler,Dimensions } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-community/async-storage';
 import HTML from 'react-native-render-html';
 import md5 from 'js-md5';
-
+import MainScreen from './MainScreen';
 export default class BookingSuccess extends React.Component {
 
   static navigationOptions = {
@@ -25,11 +25,20 @@ export default class BookingSuccess extends React.Component {
       phone: '',
 
     };
+    this.handleNavigate = this.handleNavigate.bind(this);
 
   }
+  handleNavigate = (data)=>{
+    console.log(data);
+    // if(data.loading =="false"){
+    //   console.log('write now');
+    // }
+  }
 
+handleBackButton = () => {
+  this.props.navigation.navigate('MainScreen');
+}
   componentDidMount = async () => {
-
 
     //   AsyncStorage.setItem('BookingDetailsSuccess', JSON.stringify(BookingDetailsSuccess));
     let BookingSuccess = await AsyncStorage.getItem('BookingDetailsSuccess');
@@ -44,9 +53,11 @@ export default class BookingSuccess extends React.Component {
       email: book.email,
       phone: book.phone,
     });
-
+    BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
 
   }
+
+ 
 
   render() {
     let url = this.state.servername + 'update-mobile-reservation-payment-success';
@@ -68,15 +79,16 @@ export default class BookingSuccess extends React.Component {
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <title></title>
       </head>
-      <body>
+      <body onload="submitData()">
       <script type="text/javascript" src="https://www.payhere.lk/lib/payhere.js"></script>
-      <button type="submit" id="payhere-payment" >PayHere Pay</button>
+      
       <script>
          
           payhere.onCompleted = function onCompleted(orderId) {
               console.log("Payment completed. OrderID:" + orderId);
               alert('Booking success');
-              window.location = 'BookingFinal_Copy/src/screen/MainScreen.js';
+             // window.location = 'yohobed_Copy/src/screen/MainScreen.js';
+             this.props.navigation.navigate('MainScreen');
           };
       
           payhere.onDismissed = function onDismissed() {
@@ -114,7 +126,11 @@ export default class BookingSuccess extends React.Component {
       
         document.getElementById('payhere-payment').onclick = function (e) {
           payhere.startPayment(payment);
-      };
+        };
+
+      function submitData() {
+        payhere.startPayment(payment);
+      }
       </script>
       </body>
     </html>`;
@@ -123,8 +139,6 @@ export default class BookingSuccess extends React.Component {
     return (
      
       <View style={{ flex: 1 }}>
-        <View style={{ height: 20 }} />
-      
          <WebView
           ref={ref => (this.webview = ref)}
           javaScriptEnabled={true}
@@ -134,7 +148,8 @@ export default class BookingSuccess extends React.Component {
           domStorageEnabled={true}
           scalesPageToFit={false}
           source={{ html: HtmlCode , baseUrl: "https://www.yohobed.com"}}
-         style={{flex:1}}
+          style={{flex:1}}
+          onNavigationStateChange = {this.handleNavigate}
           scrollEnabled={false} />
 
       </View>

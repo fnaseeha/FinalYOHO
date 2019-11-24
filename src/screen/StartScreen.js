@@ -12,12 +12,16 @@ import {
   StatusBar,
   ScrollView,
   TextInput,
+  ActivityIndicator,
+  BackHandler
 } from 'react-native';
 import { createStackNavigator, createAppContainer } from 'react-navigation';
 import OtpScreen from './OtpScreen';
 import MainScreen from './MainScreen';
 import axios from 'axios';
 import AsyncStorage from '@react-native-community/async-storage';
+import Spinner from 'react-native-loading-spinner-overlay';
+
 
 export default class StartScreen extends React.Component {
   static navigationOptions = {
@@ -33,18 +37,59 @@ export default class StartScreen extends React.Component {
       customerId: '',
       OtaCode: '',
       newUser: false,
+
     };
   }
 
-  login = async () => {
-  
-    try {
-     
-    let InitialDetails = await AsyncStorage.getItem('InitialDetails');
-    let initials = JSON.parse(InitialDetails);
+  componentDidMount = async () => {
 
-   // const customerId = initials.customerId;
-    initials != null
+    try {
+
+      let InitialDetails = await AsyncStorage.getItem('InitialDetails');
+      let initials = JSON.parse(InitialDetails);
+
+      console.log(initials);
+      // const customerId = initials.customerId;
+      initials != null
+        ? this.props.navigation.navigate('MainScreen')
+        : this.setState({ newUser: true })
+    } catch (e) {
+      // handle error
+      console.log(e);
+    }
+    BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
+  }
+
+  handleBackButton = async() => {
+    console.log('Back press');
+    try {
+
+      let InitialDetails = await AsyncStorage.getItem('InitialDetails');
+      let initials = JSON.parse(InitialDetails);
+
+      console.log(initials);
+      // const customerId = initials.customerId;
+      initials != null
+        ? this.props.navigation.navigate('MainScreen')
+        :  BackHandler.exitApp()
+    } catch (e) {
+      // handle error
+      BackHandler.exitApp();
+      console.log(e);
+    }
+   
+    //  this.props.navigation.navigate('MainScreen');
+  }
+
+  login = async () => {
+
+    try {
+
+      let InitialDetails = await AsyncStorage.getItem('InitialDetails');
+      let initials = JSON.parse(InitialDetails);
+
+      // const customerId = initials.customerId;
+      initials != null
         ? this.props.navigation.navigate('MainScreen')
         : this.setState({ newUser: true })
     } catch (e) {
@@ -55,12 +100,12 @@ export default class StartScreen extends React.Component {
     if (this.state.newUser == true) {
 
       if (this.state.phone.length == 9) {
-       
-        let mobile_ = '+94'+this.state.phone;
-        console.log('mobile '+mobile_);
+
+        let mobile_ = '+94' + this.state.phone;
+        console.log('mobile ' + mobile_);
         let SendData =
           {
-            mobile:mobile_,
+            mobile: mobile_,
             isIosphone: Platform.ios == "ios" ? true : false,
           };
 
@@ -76,20 +121,20 @@ export default class StartScreen extends React.Component {
             },
           })
           .then(res => {
-            console.log(res.data);
+          //  console.log(res.data);
             if (res.data.status == 'success') {
               this.setState({
                 isLoading: false,
                 OtaCode: res.data.data.OTAcode,
                 customerId: res.data.data.customerId,
               });
-              console.log('OtaCode '+this.state.OtaCode+' customerId '+this.state.customerId);
-            
+              console.log('OtaCode ' + this.state.OtaCode + ' customerId ' + this.state.customerId);
+
 
               this.props.navigation.navigate('OtpScreen', {
                 customerId: this.state.customerId,
                 OtaCode: this.state.OtaCode,
-                mobile:mobile_
+                mobile: mobile_
               });
             } else {
               Alert.alert('Error while Login');
@@ -100,11 +145,14 @@ export default class StartScreen extends React.Component {
             }
 
           })
-          .catch(e=>{
-              console.log(e);
-              if (e.includes('Network')) {
-                  alert('Please Check your Internet connection');
-              }
+          .catch(e => {
+            console.log(e);
+            if (e.includes('Network')) {
+              alert('Please Check your Internet connection');
+            }
+            this.setState({
+              isLoading: false,
+            });
           });
       } else {
         alert('Please type valid phone number')
@@ -129,21 +177,36 @@ export default class StartScreen extends React.Component {
               What's your phone Number ?
             </Text>
             <View style={{ flexDirection: 'row' }}>
-
+              <View style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 0,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: 0.5,
+              }}>
+                <Spinner
+                  visible={this.state.isLoading}
+                  textContent={'Loading...'}
+                  textStyle={{ color: 'white' }}
+                />
+              </View>
 
               <View style={{ alignItems: 'center', flex: 4, margin: 20, marginTop: 2, flexDirection: 'row' }}>
                 <TextInput
-                  style={[styles.NameInputStyle, { flex: 1,fontSize:20 }]}
+                  style={[styles.NameInputStyle, { flex: 1, fontSize: 20 }]}
                   placeholder="+94"
                   value='+94'
                   underlineColorAndroid="transparent"
-                  placeholderStyle={{ textAlign:'center' }}
+                  placeholderStyle={{ textAlign: 'center' }}
                 />
                 <View>
                   <Text>{'        '}</Text>
                 </View>
                 <TextInput
-                  style={[styles.NameInputStyle, { flex: 6, width: 30 ,fontSize:20}]}
+                  style={[styles.NameInputStyle, { flex: 6, width: 30, fontSize: 20 }]}
                   placeholder="775556662"
                   value={this.state.phone}
                   keyboardType="phone-pad"
@@ -200,7 +263,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.75)',
     margin: 20,
     paddingBottom: 40,
-    
+
   },
   RegHead2: {
     flexDirection: 'column',
@@ -233,5 +296,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#4db8ff',
   },
+  loading: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.5,
+  },
+  spinnerTextStyle: {
+    color: 'white'
+  }
 });
 

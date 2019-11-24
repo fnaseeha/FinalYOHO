@@ -85,6 +85,7 @@ export default class OtpScreen extends React.Component {
                 />
               </View>
           </View>
+         
 
           <View style={styles.RegHead2}>
             <View style={styles.TextInputStyle2}>
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     paddingRight: 40,
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: 'navy',
+    backgroundColor: '#04abae',
   },
   TextInputStyle2: {
     paddingTop: 2,

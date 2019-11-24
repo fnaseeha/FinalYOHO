@@ -3,27 +3,29 @@ import React from 'react'; import {
   StyleSheet,
   Image,
   ImageBackground,
-  Dimensions, View,TouchableOpacity
+  Dimensions, View, TouchableOpacity, BackHandler
 } from 'react-native';
 import {
   Container, Header, Content, Card, CardItem, Thumbnail,
-  Text, Button, Icon, Left, Body, Right, Picker, Item
+  Text, Button, Left, Body, Right, Picker, Item
 } from 'native-base';
 import axios from 'axios';
 import { Dropdown } from 'react-native-material-dropdown';
+import { Icon } from 'react-native-elements';
+import StartScreen from '../screen/StartScreen';
+import Spinner from 'react-native-loading-spinner-overlay';
+
 export default class City extends React.Component {
   static navigationOptions = {
     header: null,
   };
 
-  //
-//  var options =["Mount Lavinia","Colombo 03","Dehiwela","Colombo 13","Other"];
-
-
   constructor(props) {
     super(props);
     this.state = {
       selected2: undefined,
+      isLoading: false,
+      hasData:false,
       servername: 'http://core.yohobed.com/v1/general-api/public/api/mobile/get-featured-mg-properties',
       DATAS: [{
         bookings_count_lastMonth: 0,
@@ -40,11 +42,11 @@ export default class City extends React.Component {
         pricelkr: 999,
         old_pricelkr: 999,
         room_occupancy: true,
-        rooms_left: 20
+        rooms_left: 20,
       }],
       Cities:
-          [{value:"Mount Lavinia"},{value:"Colombo 03"},{value:"Dehiwela"},{value:"Colombo 13"},{value:"Other"}]
-      
+        [{ value: "Mount Lavinia" }, { value: "Colombo 03" }, { value: "Dehiwela" }, { value: "Colombo 13" }, { value: "Other" }]
+
     };
     this.PressCard = this.PressCard.bind(this);
   }
@@ -63,22 +65,22 @@ export default class City extends React.Component {
     this.getData();
   }
   onPressBack = () => {
-    this.props.navigation.pop();
+    //this.props.navigation.pop();
     // this.props.navigation.goBack();
   };
 
   PressCard = (text) => {
-   //selected2
+    //selected2
     var today = new Date();
     let today_Date = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + (today.getDate());
-   
+
     this.props.navigation.navigate('DetailScreen', {
       id: text,
-      CheckIndate:this.state.selected2,
-      CheckOutdate:"city",
+      CheckIndate: this.state.selected2,
+      CheckOutdate: "city",
     });
 
-   
+
 
   }
   onPressProfile = () => {
@@ -87,42 +89,76 @@ export default class City extends React.Component {
     //   { height: "6'2", name: "Charlie Cheever" });
   }; //
 
-  componentDidMount() {
-    console.log("getting data ....");
-    this.getData();
+  // handleBackButton = () => {
+  //   //BackHandler.exitApp();
+  //  // this.props.navigation.goBack(null);
+
+  // }
+
+  componentDidMount(){
+
+    this.getData()
+   
+
   }
+
+  // componentDidMount() {
+  //   console.log("getting data ....");
+
+  //  // BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
+  // }
   getData() {
-    console.log('selected '+this.state.selected2)
+    console.log('selected ' + this.state.selected2)
     let city = this.state.selected2;
-    console.log('city '+city);
+
+    console.log('city ' + city);
+    
+    this.setState({
+      isLoading:true
+    });
+    
     let SendData = {
       city: city,
     };
+    
     axios
-      .post(this.state.servername, SendData,{
+      .post(this.state.servername, SendData, {
         header: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
         },
       })
       .then(res => {
-        console.log(res.data);
+       
         this.setState({
           DATAS: res.data,
+          isLoading:false,
+          hasData:true,
         });
+       
+        if(res.data.length ==0){
+         this.setState({
+          hasData:false
+         })
+        }
       })
       .catch(error => {
+        this.setState({
+          isLoading:false
+        });
+        alert('Please Check your Internet Connection');
         console.log(error);
         //[Error:
-        
+
       });
   }
   render() {
 
-    let display = this.state.DATAS==undefined?[]:this.state.DATAS.map((NewsData, index) => {
+    let display = this.state.DATAS.map((NewsData, index) => {
 
       let ss = NewsData.thumbnail
-      let c = 'https://www.yohobed.com/images/property/thumbnail/' + ss
+      let c = 'https://www.yohobed.com/images/property/thumbnail/' + ss;
+
       return (
 
         <TouchableOpacity key={NewsData.id}>
@@ -133,12 +169,28 @@ export default class City extends React.Component {
             <CardItem>
               <Left>
 
+          <View style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: 0.5,
+          }}>
+            <Spinner
+              visible={this.state.isLoading}
+              textContent={'Loading...'}
+              textStyle={{ color: 'white' }}
+            />
+          </View>
+
                 <Body>
                   <Text style={{ color: 'blue', fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>
-                  {NewsData.name}</Text>
+                    {NewsData.name}</Text>
                   <View style={{ flexDirection: 'row' }}>
                     <Text note style={styles.boutique}>{NewsData.propertytype}</Text>
-                    <Text note>{' '}</Text>
                     <Text note>{NewsData.city}</Text>
                   </View>
                 </Body>
@@ -155,24 +207,53 @@ export default class City extends React.Component {
 
       )
     });
+    
+    if(this.state.hasData==false){
+      console.log('this.state.hasData');
+      let DATAS2=  [{
+        id: 1733,
+      }];
+       display = DATAS2.map((NewsData, index) => {
+
+        let ss = NewsData.thumbnail
+        let c = 'https://www.yohobed.com/images/property/thumbnail/' + ss;
+  
+        return (
+  
+          <TouchableOpacity key={NewsData.id}>
+            <Card>
+              <CardItem cardBody>
+              
+                <Image source={require('../image/nodata.jpg')} style={{ height:  Dimensions.get('window').height-200, width: null, flex: 1 }} />
+              </CardItem>
+              
+            </Card>
+          </TouchableOpacity>
+  
+        )
+      });
+    }
+    
 
     return (
       <ImageBackground
         source={require('../image/background_1.jpg')}
         style={styles.backImg}>
+
         <Container>
-        <Dropdown
-                  label=''
-                  data={this.state.Cities}
-                  pickerStyle={styles.dropDownStyle}
-                  containerStyle={styles.dropDownContainer}
-                  onChangeText={this.onValueChange2.bind(this)}
-                  itemCount="10"
-                  style={{ color: 'navy' }}
-                  baseColor="navy"
-                  placeholder='Select City'
-                />
-         
+
+          <Dropdown
+            label='Select City'
+            data={this.state.Cities}
+            pickerStyle={styles.dropDownStyle}
+            containerStyle={styles.dropDownContainer}
+            onChangeText={this.onValueChange2.bind(this)}
+            itemCount="10"
+            style={{ color: 'black' }}
+            baseColor="transparent"
+            placeholder=' Select City'
+          />
+
           <Content>
             {display}
           </Content>
@@ -240,13 +321,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     padding: 5,
   },
-  dropDownStyle: {
-    backgroundColor: 'white',
-  },
-  dropDownContainer: {
-    backgroundColor: 'rgba(246,241,248,0)',
-    width: Dimensions.get('window').width-50,
-    margin:20,
-    color: '#4db8ff',
-  },
+ 
 });

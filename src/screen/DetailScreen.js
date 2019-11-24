@@ -11,13 +11,18 @@ import {
   Alert,
   StatusBar,
   ScrollView,
-  TextInput
+  Modal,
+  BackHandler,
+  TextInput,
 } from 'react-native';
-import { Button, Icon } from 'react-native-elements';
+import {
+  Button,
+  Icon,
+  Input, 
+} from 'react-native-elements';
 import { createStackNavigator, createAppContainer } from 'react-navigation';
 import { SliderBox } from 'react-native-image-slider-box';
 import DatePicker from 'react-native-datepicker';
-import { Card } from 'native-base';
 import CalendarPicker from 'react-native-calendar-picker';
 import MyView from '../helper/MyView';
 import { Dropdown } from 'react-native-material-dropdown';
@@ -26,12 +31,26 @@ import moment from 'moment';
 import AsyncStorage from '@react-native-community/async-storage';
 import Login from './LoginScreens/Login';
 import BookingSuccess from './BookingSuccess';
+import MainScreen from './MainScreen';
+import DialogBox from 'react-native-dialogbox';
+import Spinner from 'react-native-loading-spinner-overlay';
+import {
+  Container, Header, Content, Card, CardItem, Thumbnail,
+  Left, Body, Right, Picker, Item,
+} from 'native-base';
+import Dialog, {
+  DialogTitle,
+  DialogContent,
+  DialogFooter,
+  DialogButton,
+  ScaleAnimation,
+} from 'react-native-popup-dialog';
 
 const MainColor = 'white';
 const fonStyletColor = 'black';
 const lableStyleColor = 'black';
-const backgroundStyleColor = 'navy';//#142565 #2F4F4F
-const secondcolor  = 'purple';
+const backgroundStyleColor = '#1d1717';//#142565 #2F4F4F
+const secondcolor = '#372121';
 export default class DetailScreen extends React.Component {
 
   constructor(props) {
@@ -42,8 +61,7 @@ export default class DetailScreen extends React.Component {
         'https://source.unsplash.com/1024x768/?bed',
       ],
 
-      selectedStartDate: null,
-      selectedEndDate: null,
+
       isHidden: true,
       btnTitle: 'Select Date',
 
@@ -62,17 +80,33 @@ export default class DetailScreen extends React.Component {
       avilable_room: [],
       RoomError: '',
       newLogin: false,
+      number_room_error: '',
+      room_left: '',
+      //dialog
+      defaultAnimationDialog: false,
+      scaleAnimationDialog: false,
+      slideAnimationDialog: false,
+      isVisible: false,
+      isLoading: true,
+      Bookingdata: {
+        name: 'Yoho Villa',
+        CheckIn: '2019/10/15',
+        CheckOut: '2019/10/15',
+        BookingNumber: '115552244',
+      },
+
 
       //send data
       room_id: '',
       rate_code: '',
-      room_no: null,
+      room_no: '1',
       total_price: '',
       CheckIndate: '',
       CheckOutdate: '',
 
+
     };
-    this.onDateChange = this.onDateChange.bind(this);
+
     this.openCalendar = this.openCalendar.bind(this);
     this.onChangeRoomType = this.onChangeRoomType.bind(this);
     this.onChangeRoom = this.onChangeRoom.bind(this);
@@ -107,31 +141,33 @@ export default class DetailScreen extends React.Component {
 
   onChangeRoom(text) {
 
-    let tt = this.state.hotel_price * text
-    this.setState({
-      room_no: text,
-      total_price: tt
-    });
 
-  }
+    // if((inputtxt.value.match(phoneno))
 
-  onDateChange(date, type) {
-    if (type === 'END_DATE') {
-
-
+    console.log(this.state.room_left < text);
+    if (isNaN(text)) {
       this.setState({
-        selectedEndDate: date,
-        isHidden: true,
-        //  btnTitle: date
+        room_no: text,
+        number_room_error: 'Invalid Room Number',
       });
     } else {
-      this.setState({
-        selectedStartDate: date,
-        selectedEndDate: null,
-        //btnTitle:,
-      });
+      if (this.state.room_left < text) {
+        this.setState({
+          room_no: text,
+          number_room_error: 'Number of Room is more than availability',
+        });
+      } else {
+        let tt = this.state.hotel_price * text
+        this.setState({
+          room_no: text,
+          total_price: tt,
+          number_room_error: '',
+        });
+      }
     }
   }
+
+
 
   openCalendar() {
 
@@ -140,11 +176,6 @@ export default class DetailScreen extends React.Component {
     });
     //this.CalendarPicker && this.CalendarPicker.open();
   }
-
-
-
-
-
 
   static navigationOptions = {
     header: null,
@@ -168,10 +199,11 @@ export default class DetailScreen extends React.Component {
 
       this.setState({
         property_ids: this.props.navigation.state.params.id,
-        CheckIndate: this.props.navigation.state.params.CheckInDate
+        CheckIndate: this.props.navigation.state.params.CheckInDate,
+        room_left: this.props.navigation.state.params.room_left
       });
 
-
+      console.log(this.props.navigation.state.params.room_left);
       var date_ = this.props.navigation.state.params.CheckInDate.split('-');
       var day_ = date_[2].length == 1 ? "0" + date_[2] : date_[2];
       var month_ = date_[1].length == 1 ? "0" + date_[1] : date_[1];
@@ -188,21 +220,29 @@ export default class DetailScreen extends React.Component {
         CheckIndate: finaldate,
         CheckOutdate: selected_day_tommorow
       });
-
+      BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
       this.getData(this.props.navigation.state.params.id, this.props.navigation.state.params.CheckInDate, selected_day_tommorow);
     }
   }
 
+  handleBackButton = () => {
+    console.log('Back press');
+    
+     this.props.navigation.navigate('MainScreen');
+  }
   getData = (text, checkin, checkout) => {
     console.log("id " + text);
     console.log("getData  CheckIndate " + checkin + " : CheckOutdate " + checkout);
 
+    this.setState({
+      isLoading: true,
+    });
     let SendData = {
       property_id: text,
       checkin: checkin,
       checkout: checkout,
     };
-    let url = this.state.servername+'mg-property-view';
+    let url = this.state.servername + 'mg-property-view';
     axios
       .post(url, SendData, {
         header: {
@@ -212,7 +252,9 @@ export default class DetailScreen extends React.Component {
       })
       .then(res => {
         console.log(res.data.data.roomsArray);
-
+        this.setState({
+          isLoading: false,
+        });
         if (res.data.message == "Transaction success") {
 
           this.setState({
@@ -262,18 +304,25 @@ export default class DetailScreen extends React.Component {
 
             });
           }
+          this.onChangeRoomType("Standard Double Room");
         } else {
+
+          Alert.alert(res.data.message);
           console.log(res.data.message);
         }
       })
       .catch(error => {
+        this.setState({
+          isLoading: false,
+        });
         console.error(error);
-        if (error.includes('Network')) {
-          alert('Please Check your Internet connection');
-      }
+        Alert.alert('Please Check your Internet connection');
       });
   }
-
+  onPressBack = () => {
+    //this.props.navigation.pop();
+    this.props.navigation.goBack();
+  };
   BookNow = async () => {
 
     let InitialDetails = await AsyncStorage.getItem('InitialDetails');
@@ -283,17 +332,17 @@ export default class DetailScreen extends React.Component {
     let phone = initials.phone;
     console.log('cus ' + customerId + ' phone ' + phone);
     console.log('room id ' + this.state.room_id);
-// this.props.navigation.navigate('MainScreen');
-    if (this.state.RoomError == '' && this.state.room_id != undefined && this.state.room_id!= '') {
+    // this.props.navigation.navigate('MainScreen');number_room_error
+    if (this.state.RoomError == '' && this.state.number_room_error == '' && this.state.room_id != undefined && this.state.room_id != '') {
 
       let BookingDetails = {
         room_id: this.state.room_id,
         checkin: this.state.CheckIndate,
         checkout: this.state.CheckOutdate,
         rate_code: this.state.rate_code,
-        rooms: (this.state.room_no == null ? '1' : this.state.room_no),
+        rooms: this.state.room_no,
         amount: this.state.total_price,
-        customer_id:customerId,
+        customer_id: customerId,
       };
 
       AsyncStorage.setItem('BookingDetails', JSON.stringify(BookingDetails));
@@ -301,82 +350,127 @@ export default class DetailScreen extends React.Component {
       let ld = null;
       try {
         let loginDetails = await AsyncStorage.getItem('loginDetails');
-         ld = JSON.parse(loginDetails);
-       
-        console.log('ld '+ld);
-       
+        ld = JSON.parse(loginDetails);
+
+        console.log('ld ' + ld);
+
       } catch (e) {
         console.log(e);
       }
       if (ld == null) {
+
+        let BookingSuccessDetails = {
+          room_id: this.state.room_id,
+          checkin: this.state.CheckIndate,
+          checkout: this.state.CheckOutdate,
+          rate_code: this.state.rate_code,
+          rooms: this.state.room_no,
+          amount: this.state.total_price,
+          customer_id: customerId,
+          hotel_name:this.state.hotel_name
+        };
+
+        console.log(BookingSuccessDetails);
+        AsyncStorage.setItem('BookingSuccessDetails', JSON.stringify(BookingSuccessDetails));
+
         this.props.navigation.navigate('Login');
-      }else{
+      } else {
 
         let SendData =
-        {
-          room_id:this.state.room_id,
-          checkin:this.state.CheckIndate,
-          checkout:this.state.CheckOutdate,
-          guests:2,
-          country:"Srilanka",
-          rate_code:this.state.rate_code,
-          rooms: (this.state.room_no == null ? '1' : this.state.room_no),
-          mealplan:"Ro",
-          amount:this.state.total_price,
-          currency:"LKR",
-          deal_amount:0,
-          customer_id:customerId
+          {
+            room_id: this.state.room_id,
+            checkin: this.state.CheckIndate,
+            checkout: this.state.CheckOutdate,
+            guests: 2,
+            country: "Srilanka",
+            rate_code: this.state.rate_code,
+            rooms:  this.state.room_no,
+            mealplan: "Ro",
+            amount: this.state.total_price,
+            currency: "LKR",
+            deal_amount: 0,
+            customer_id: customerId
           };
 
-        
-        let url = this.state.servername+'add-mobile-reservation';
+        this.setState({
+          isLoading: true,
+        });
+        let url = this.state.servername + 'add-mobile-reservation';
         axios
-        .post(url, SendData, {
-          header: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-          },
-        })
-        .then(res => {
-         
-          if (res.data.status == 'success') {
-            Alert.alert('Booking Success');
-            
-            console.log(res.data.data.booking.booking_no);
-            // console.log(res.data.encodedReference);
-            let BookingDetailsSuccess = {
-              order_id:res.data.data.booking.booking_no,
-              items:res.data.data.booking.hotel_code,
-              amount:this.state.total_price,
-              name:res.data.data.booking.guest_name,
-              email:res.data.data.booking.email_id,
-              phone:res.data.data.booking.mobile_no,
-            };
-      
-            AsyncStorage.setItem('BookingDetailsSuccess', JSON.stringify(BookingDetailsSuccess));
-         
-            this.props.navigation.navigate('BookingSuccess');
-           
+          .post(url, SendData, {
+            header: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+          })
+          .then(res => {
 
-          } else {
+            this.setState({
+              isLoading: false,
+            });
+            if (res.data.status == 'success') {
+              // Alert.alert('Booking Success');
 
-            Alert.alert('Booking Cancelled');
+              console.log(res.data.data.booking.booking_no);
+              // console.log(res.data.encodedReference);
+              let BookingDetailsSuccess = {
+                order_id: res.data.data.booking.booking_no,
+                items: res.data.data.booking.hotel_code,
+                amount: this.state.total_price,
+                name: res.data.data.booking.guest_name,
+                email: res.data.data.booking.email_id,
+                phone: res.data.data.booking.mobile_no,
+              };
 
-          }
+              AsyncStorage.setItem('BookingDetailsSuccess', JSON.stringify(BookingDetailsSuccess));
+              this.setState({
+                Bookingdata: {
+                  name: this.state.hotel_name,
+                  CheckIn: this.state.CheckIndate,
+                  CheckOut: this.state.CheckOutdate,
+                  BookingNumber: res.data.data.booking.booking_no,
+                },
+                scaleAnimationDialog: true
+              });
 
-        })
-        
-      .catch(e=>{
-          console.log(e);
-          if (e.includes('Network')) {
+
+              //this.props.navigation.navigate('BookingSuccess');
+              /**this.state.CheckIndate,
+            checkout:this.state.CheckOutdate, */
+
+              // this.props.navigation.navigate('BookingSuccess');
+
+              //  this.props.navigation.navigate('MainScreen');
+
+            } else {
+
+              Alert.alert('Booking Cancelled');
+
+            }
+
+          })
+
+          .catch(e => {
+            console.log(e);
+            this.setState({
+              isLoading: false,
+            });
             alert('Please Check your Internet connection');
-        }
-      });
+          });
       }
 
 
     } else {
-      alert('Please Select Valid Room type');
+      if (this.state.number_room_error != "") {
+        alert(this.state.number_room_error);
+      }
+      if (this.state.RoomError != "") {
+        alert(this.state.RoomError);
+      }
+      if (this.state.room_id == "") {
+        alert('Please Select a room type');
+      }
+
     }
   }
 
@@ -395,21 +489,8 @@ export default class DetailScreen extends React.Component {
   }
 
   render() {
-    const { selectedStartDate, selectedEndDate } = this.state;
+
     const minDate = new Date(); // Today
-    const maxDate = new Date(2097, 6, 3);
-    const startDate = selectedStartDate ? selectedStartDate.toString() : '';
-    const endDate = selectedEndDate ? selectedEndDate.toString() : '';
-    let start_date = '';
-    let end_date = '';
-    let final_date = null;
-    if (startDate && endDate) {
-      const today = new Date(startDate);
-      start_date = today.getDate() + '/' + (today.getMonth() + 1) + '/' + today.getFullYear();
-      const toDate = new Date(endDate);
-      end_date = toDate.getDate() + '/' + (toDate.getMonth() + 1) + '/' + toDate.getFullYear();
-      final_date = start_date + ' - ' + end_date;
-    }
 
     let aminities_display = this.state.aminities.map((emi, index) => {
       let img_url = 'https://www.yohobed.com/images/property/thumbnail/' + emi.icon
@@ -428,7 +509,7 @@ export default class DetailScreen extends React.Component {
     });
     const currentDate = moment().format("YYYY-MM-DD");
     console.log(currentDate);
-
+    const { Bookingdata } = this.state;
     return (
       <View style={styles.backImg}>
         <ScrollView>
@@ -436,7 +517,8 @@ export default class DetailScreen extends React.Component {
             images={this.state.image_array}
             style={{ flex: 6 }}
           />
-         
+
+
           <Card style={{ flex: 6, padding: 10, marginBottom: 1, backgroundColor: MainColor }}>
             <Text style={{ fontSize: 16, color: fonStyletColor, paddingStart: 5 }}>
               {this.state.hotel_name}
@@ -447,7 +529,7 @@ export default class DetailScreen extends React.Component {
             </Text>
           </Card>
 
-          <View style={{ flex: 5, flexDirection: 'row',padding:2 }}>
+          <View style={{ flex: 5, flexDirection: 'row', padding: 2 }}>
             <TouchableOpacity style={styles.facility}>
               <Image
                 style={{ width: 25, height: 25 }}
@@ -514,6 +596,139 @@ export default class DetailScreen extends React.Component {
               </Card>
             </View>
 
+            <View style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: 0.5,
+            }}>
+              <Spinner
+                visible={this.state.isLoading}
+                textContent={'Loading...'}
+                textStyle={{ color: 'white' }}
+              />
+            </View>
+            <Dialog
+              onTouchOutside={() => {
+                this.setState({ scaleAnimationDialog: false });
+              }}
+              width={0.9}
+              visible={this.state.scaleAnimationDialog}
+              dialogAnimation={new ScaleAnimation()}
+              onHardwareBackPress={() => {
+                console.log('onHardwareBackPress');
+                this.setState({ scaleAnimationDialog: false });
+                return true;
+              }}
+              dialogTitle={
+                <DialogTitle
+                  title=" Confirm Booking "
+                  hasTitleBar={false}
+                />
+              }
+              actions={[
+                <DialogButton
+                  text="DISMISS"
+                  onPress={() => {
+                    this.setState({ scaleAnimationDialog: false });
+                  }}
+                  key="button-1"
+                />,
+              ]}>
+              <DialogContent>
+                <View>
+                  <Card >
+                    <CardItem>
+                      <Left>
+                        <Body>
+                          <View style={{ flex: 1, flexDirection: 'row' }}>
+                            <Text style={{ flex: 1 }}>AAA</Text>
+                            <Text style={{ flex: 1 }}>BBB</Text>
+                          </View>
+                          <Text style={{ color: 'blue', fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>
+                            Hotel Name</Text>
+                          <Text style={{ color: 'blue', fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>
+                            Check In</Text>
+                          <Text style={{ color: 'blue', fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>
+                            Check Out</Text>
+                          <Text style={{ color: 'blue', fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>
+                            Booking Number</Text>
+                        </Body>
+                      </Left>
+                      <Right>
+                        <Body>
+                          <Text style={{ color: 'black', fontSize: 12, fontWeight: 'bold', marginBottom: 8 }}>
+                            {Bookingdata.name}</Text>
+                          <Text style={{ color: 'black', fontSize: 12, fontWeight: 'bold', marginBottom: 8 }}>
+                            {Bookingdata.CheckIn}</Text>
+                          <Text style={{ color: 'black', fontSize: 12, fontWeight: 'bold', marginBottom: 8 }}>
+                            {Bookingdata.CheckOut}</Text>
+                          <Text style={{ color: 'black', fontSize: 12, fontWeight: 'bold', marginBottom: 8 }}>
+                            {Bookingdata.BookingNumber}</Text>
+                        </Body>
+                      </Right>
+                    </CardItem>
+                  </Card>
+                  <Button
+                    style={{ paddingTop: 20 }}
+                    title="Confim"
+                    onPress={() => {
+                      this.setState({ scaleAnimationDialog: false, defaultAnimationDialog: true });
+
+
+
+                    }}
+                    key="button-1"
+                  />
+                </View>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog
+              onDismiss={() => {
+                this.setState({ defaultAnimationDialog: false });
+              }}
+              width={0.9}
+              visible={this.state.defaultAnimationDialog}
+              rounded
+              actionsBordered
+              dialogTitle={
+                <DialogTitle
+                  title="Booking Success"
+                  style={{
+                    backgroundColor: '#F7F7F8',
+                  }}
+                  hasTitleBar={false}
+                  align="left"
+                />
+              }
+              footer={
+                <DialogFooter>
+
+                  <DialogButton
+                    text="OK"
+                    bordered
+                    onPress={() => {
+                      this.setState({ defaultAnimationDialog: false });
+                      this.props.navigation.navigate('MainScreen');
+                    }}
+                    key="button-2"
+                  />
+                </DialogFooter>
+              }>
+              <DialogContent
+                style={{
+                  backgroundColor: '#F7F7F8',
+                }}>
+
+              </DialogContent>
+            </Dialog>
+
+
             <View style={styles.calenderContainer}>
 
               <View style={{ flex: 1, flexDirection: 'row' }}>
@@ -522,7 +737,7 @@ export default class DetailScreen extends React.Component {
                   <Card>
                     <DatePicker
                       style={{
-                        width:( Dimensions.get('window').width / 2)-13, alignItems: 'center',
+                        width: (Dimensions.get('window').width / 2) - 13, alignItems: 'center',
                         padding: 10,
                         borderWidth: 0.1,
                       }}
@@ -535,7 +750,7 @@ export default class DetailScreen extends React.Component {
                       minDate={currentDate}
                       customStyles={{
                         dateIcon: { width: 0, height: 0 },
-                        
+
                       }}
                       onDateChange={date => {
                         this.setState({ CheckIndate: date });
@@ -550,7 +765,7 @@ export default class DetailScreen extends React.Component {
                   <Card>
                     <DatePicker
                       style={{
-                        width:( Dimensions.get('window').width / 2)-13, alignItems: 'center',
+                        width: (Dimensions.get('window').width / 2) - 13, alignItems: 'center',
                         padding: 10,
                         borderWidth: 0.1,
                       }}
@@ -563,7 +778,7 @@ export default class DetailScreen extends React.Component {
                       minDate={this.state.CheckIndate}
                       customStyles={{
                         dateIcon: { width: 0, height: 0 },
-                       
+
                       }}
                       onDateChange={date => {
                         this.setState({ CheckOutdate: date });
@@ -575,7 +790,7 @@ export default class DetailScreen extends React.Component {
               </View>
             </View>
 
-            <Card style={{ flex: 3, padding: 1,paddingLeft:2, marginBottom: 10, backgroundColor: MainColor }}>
+            <Card style={{ flex: 3, padding: 1, paddingLeft: 2, marginBottom: 10, backgroundColor: MainColor }}>
               <View>
                 <Dropdown
                   label='Room Type'
@@ -583,6 +798,7 @@ export default class DetailScreen extends React.Component {
                   pickerStyle={styles.dropDownStyle}
                   containerStyle={styles.dropDownContainer}
                   onChangeText={this.onChangeRoomType}
+                  value="Standard Double Room"
                   itemCount="10"
                   style={{ color: fonStyletColor }}
                   baseColor={lableStyleColor}
@@ -591,18 +807,22 @@ export default class DetailScreen extends React.Component {
               </View>
 
               <View>
-                <TextInput
+                <Input
                   style={[
                     styles.NameInputStyle,
-                    { height: 50, textAlign: 'left' },
+                    { height: 50, textAlign: 'left', paddingStart: 10, marginBottom: 10 },
                   ]}
-                  placeholderTextColor={lableStyleColor}
-                  placeholder="Number of rooms"
+                  labelStyle={lableStyleColor}
+                  label="Number of rooms"
                   underlineColorAndroid="transparent"
+                  errorStyle={{ color: 'red' }}
+                  errorMessage={this.state.number_room_error}
                   value={this.state.room_no}
                   onChangeText={this.onChangeRoom}
                 />
               </View>
+            
+
             </Card>
 
           </View>
@@ -614,10 +834,15 @@ export default class DetailScreen extends React.Component {
                 <Text
                   style={{
                     fontSize: 16,
-                    color: 'white',
-                    padding: 10,
+                    color: 'black',
+                    padding: 20,
                     paddingStart: 5,
-                    textAlign:'center'
+                    textAlign: 'center',
+                    backgroundColor: 'white',
+                    paddingLeft: 10, paddingRight: 10,
+                    paddingTop: 4, paddingBottom: 4,
+                    borderRadius: 1,
+                    overflow: 'hidden',
                   }}>
                   Pricing
             </Text>
@@ -650,7 +875,7 @@ export default class DetailScreen extends React.Component {
                   <Text style={styles.detailCard}>No of Rooms</Text>
                   <View style={[styles.detailCard2, { flexDirection: 'row' }]}>
 
-                    <Text style={{ fontSize: 12, color: fonStyletColor }}> {this.state.room_no == undefined ? 1 : this.state.room_no} </Text>
+                    <Text style={{ fontSize: 12, color: fonStyletColor }}> {this.state.room_no} </Text>
                   </View>
                 </View>
               </View>
@@ -667,7 +892,7 @@ export default class DetailScreen extends React.Component {
             </Card>
           </View>
 
-          <View style={{ flex: 3,padding:7 }}>
+          <View style={{ flex: 3, padding: 7 }}>
             <Button
               titleStyle={styles.dayText}
               title="Book Now"
@@ -686,7 +911,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'stretch', //skyblue
-    backgroundColor:backgroundStyleColor,
+    backgroundColor: backgroundStyleColor,
   },
   calenderContainer: {
     flex: 1,
@@ -705,6 +930,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(246,241,248,0)',
     width: Dimensions.get('window').width - 50,
     color: '#4db8ff',
+    paddingStart: 10,
   },
   facility: {
     flex: 1,
@@ -758,7 +984,8 @@ const styles = StyleSheet.create({
 
   },
   CheckInStyle: {
-    backgroundColor: 'white', paddingLeft: 10, paddingRight: 10,
+    backgroundColor: 'white',
+    paddingLeft: 10, paddingRight: 10,
     paddingTop: 4, paddingBottom: 4,
     borderRadius: 10,
     overflow: 'hidden',
