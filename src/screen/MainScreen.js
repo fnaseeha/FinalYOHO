@@ -66,7 +66,7 @@ const navBar = createBottomTabNavigator(
             , [
               {
                 text: 'okay', onPress: () => {
-                  AsyncStorage.setItem('loginDetails', null);
+                  AsyncStorage.removeItem('loginDetails');
                   navigation.dispatch(NavigationActions.navigate({ routeName: 'login' }))
                 }
               },

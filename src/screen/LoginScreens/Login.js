@@ -65,12 +65,24 @@ export default class Login extends Component {
     header: null,
   };
 
+  
+  removeItemValue = async (key) => {
+    try {
+      await AsyncStorage.removeItem(key);
+      return true;
+    }
+    catch(exception) {
+      return false;
+    }
+  }
+
   saveData = async () => {
     const { email, password } = this.state;
 
     try {
       let BookingSuccessDetails_ = await AsyncStorage.getItem('BookingSuccessDetails');
       let BookingSuccessDetails = JSON.parse(BookingSuccessDetails_);
+      console.log(BookingSuccessDetails);
       this.setState({
         BookingSuccessDetail: BookingSuccessDetails
       });
@@ -128,10 +140,13 @@ export default class Login extends Component {
             };
 
             AsyncStorage.setItem('loginDetails', JSON.stringify(loginDetails));
-            console.log('set loginDetails');
+           
            if(this.state.BookingSuccessDetail == null){
-             Alert.alert('Successfully Log In');
-             this.props.navigation.navigate('MainScreen');
+            console.log('set MainScreen');
+            this.props.navigation.pop();
+          
+            Alert.alert('Successfully Log In');
+             
            }else{
             this.setState({
               scaleAnimationDialog: true,
@@ -215,7 +230,6 @@ export default class Login extends Component {
           customer_id: this.state.BookingSuccessDetail.customer_id
         };
 
-
       let url = 'http://core.yohobed.com/v1/general-api/public/api/mobile/add-mobile-reservation';
       axios
         .post(url, SendDataBookingSuccessDetails, {
@@ -244,23 +258,23 @@ export default class Login extends Component {
             };
 
             AsyncStorage.setItem('BookingDetailsSuccess', JSON.stringify(BookingDetailsSuccess));
-            AsyncStorage.setItem('BookingSuccessDetails', null);
+           
+            this.removeItemValue('BookingSuccessDetails');
+            
             this.setState({
                scaleAnimationDialog: false, 
                defaultAnimationDialog: true,
                BookingStatus:'Booking Success',
               });
            
-
           } else {
-            AsyncStorage.setItem('BookingSuccessDetails', null);
+          
+            this.removeItemValue('BookingSuccessDetails');
             this.setState({
               scaleAnimationDialog: false, 
               defaultAnimationDialog: true,
               BookingStatus:'Booking Failed',
-             });
-          
-            
+             }); 
           }
         })
         .catch(e => {
@@ -278,8 +292,6 @@ export default class Login extends Component {
       // handle error
       console.log(e);
     }
-   
-
   }
 
 

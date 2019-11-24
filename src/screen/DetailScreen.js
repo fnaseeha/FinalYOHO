@@ -91,10 +91,9 @@ export default class DetailScreen extends React.Component {
       Bookingdata: {
         name: 'Yoho Villa',
         CheckIn: '2019/10/15',
-        CheckOut: '2019/10/15',
-        BookingNumber: '115552244',
+        CheckOut: '2019/10/15'
       },
-
+      customer_id:'',
 
       //send data
       room_id: '',
@@ -323,6 +322,99 @@ export default class DetailScreen extends React.Component {
     //this.props.navigation.pop();
     this.props.navigation.goBack();
   };
+
+  ConfirmBooking = () =>{
+    console.log('confirm booking');
+    try {
+      console.log('*******');
+      console.log(this.state.BookingSuccessDetail);
+      console.log('*******');
+      // const customerId = initials.customerId;
+
+      this.setState({
+        isLoading:true,
+      });
+
+
+      let SendDataBookingSuccessDetails =
+       {
+            room_id: this.state.room_id,
+            checkin: this.state.CheckIndate,
+            checkout: this.state.CheckOutdate,
+            guests: 2,
+            country: "Srilanka",
+            rate_code: this.state.rate_code,
+            rooms:  this.state.room_no,
+            mealplan: "Ro",
+            amount: this.state.total_price,
+            currency: "LKR",
+            deal_amount: 0,
+            customer_id: this.state.customer_id
+          };
+
+      let url = 'http://core.yohobed.com/v1/general-api/public/api/mobile/add-mobile-reservation';
+      axios
+        .post(url, SendDataBookingSuccessDetails, {
+          header: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        })
+        .then(res => {
+          console.log(res.data);
+          this.setState({
+            isLoading: false,
+          });
+          if (res.data.status == 'success') {
+           
+
+            console.log(res.data.data.booking.booking_no);
+            // console.log(res.data.encodedReference);
+            let BookingDetailsSuccess = {
+              order_id: res.data.data.booking.booking_no,
+              items: res.data.data.booking.hotel_code,
+              amount: this.state.total_price,
+              name: res.data.data.booking.guest_name,
+              email: res.data.data.booking.email_id,
+              phone: res.data.data.booking.mobile_no,
+            };
+
+            AsyncStorage.setItem('BookingDetailsSuccess', JSON.stringify(BookingDetailsSuccess));
+           
+            this.removeItemValue('BookingSuccessDetails');
+            
+            this.setState({
+               scaleAnimationDialog: false, 
+               defaultAnimationDialog: true,
+               BookingStatus:'Booking Success',
+              });
+           
+          } else {
+          
+            this.removeItemValue('BookingSuccessDetails');
+            this.setState({
+              scaleAnimationDialog: false, 
+              defaultAnimationDialog: true,
+              BookingStatus:'Booking Failed',
+             }); 
+          }
+        })
+        .catch(e => {
+          console.log(e);
+          this.setState({
+            isLoading:false
+          })
+          alert('Please Check your Internet connection');
+        });
+    } catch (e) {
+      this.setState({
+        isLoading:false
+      })
+
+      // handle error
+      console.log(e);
+    }
+  }
   BookNow = async () => {
 
     let InitialDetails = await AsyncStorage.getItem('InitialDetails');
@@ -345,6 +437,9 @@ export default class DetailScreen extends React.Component {
         customer_id: customerId,
       };
 
+      this.setState({
+        customer_id:customerId,
+      });
       AsyncStorage.setItem('BookingDetails', JSON.stringify(BookingDetails));
 
       let ld = null;
@@ -375,90 +470,15 @@ export default class DetailScreen extends React.Component {
 
         this.props.navigation.navigate('Login');
       } else {
-
-        let SendData =
-          {
-            room_id: this.state.room_id,
-            checkin: this.state.CheckIndate,
-            checkout: this.state.CheckOutdate,
-            guests: 2,
-            country: "Srilanka",
-            rate_code: this.state.rate_code,
-            rooms:  this.state.room_no,
-            mealplan: "Ro",
-            amount: this.state.total_price,
-            currency: "LKR",
-            deal_amount: 0,
-            customer_id: customerId
-          };
-
         this.setState({
-          isLoading: true,
+          scaleAnimationDialog: true,
+          Bookingdata: {
+            name:this.state.hotel_name,
+            CheckIn: this.state.CheckIndate,
+            CheckOut: this.state.CheckOutdate,
+          },  
         });
-        let url = this.state.servername + 'add-mobile-reservation';
-        axios
-          .post(url, SendData, {
-            header: {
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-            },
-          })
-          .then(res => {
-
-            this.setState({
-              isLoading: false,
-            });
-            if (res.data.status == 'success') {
-              // Alert.alert('Booking Success');
-
-              console.log(res.data.data.booking.booking_no);
-              // console.log(res.data.encodedReference);
-              let BookingDetailsSuccess = {
-                order_id: res.data.data.booking.booking_no,
-                items: res.data.data.booking.hotel_code,
-                amount: this.state.total_price,
-                name: res.data.data.booking.guest_name,
-                email: res.data.data.booking.email_id,
-                phone: res.data.data.booking.mobile_no,
-              };
-
-              AsyncStorage.setItem('BookingDetailsSuccess', JSON.stringify(BookingDetailsSuccess));
-              this.setState({
-                Bookingdata: {
-                  name: this.state.hotel_name,
-                  CheckIn: this.state.CheckIndate,
-                  CheckOut: this.state.CheckOutdate,
-                  BookingNumber: res.data.data.booking.booking_no,
-                },
-                scaleAnimationDialog: true
-              });
-
-
-              //this.props.navigation.navigate('BookingSuccess');
-              /**this.state.CheckIndate,
-            checkout:this.state.CheckOutdate, */
-
-              // this.props.navigation.navigate('BookingSuccess');
-
-              //  this.props.navigation.navigate('MainScreen');
-
-            } else {
-
-              Alert.alert('Booking Cancelled');
-
-            }
-
-          })
-
-          .catch(e => {
-            console.log(e);
-            this.setState({
-              isLoading: false,
-            });
-            alert('Please Check your Internet connection');
-          });
       }
-
 
     } else {
       if (this.state.number_room_error != "") {
@@ -633,9 +653,7 @@ export default class DetailScreen extends React.Component {
               actions={[
                 <DialogButton
                   text="DISMISS"
-                  onPress={() => {
-                    this.setState({ scaleAnimationDialog: false });
-                  }}
+                  onPress={() => this.ConfirmBooking()}
                   key="button-1"
                 />,
               ]}>
@@ -655,8 +673,7 @@ export default class DetailScreen extends React.Component {
                             Check In</Text>
                           <Text style={{ color: 'blue', fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>
                             Check Out</Text>
-                          <Text style={{ color: 'blue', fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>
-                            Booking Number</Text>
+                        
                         </Body>
                       </Left>
                       <Right>
@@ -667,8 +684,7 @@ export default class DetailScreen extends React.Component {
                             {Bookingdata.CheckIn}</Text>
                           <Text style={{ color: 'black', fontSize: 12, fontWeight: 'bold', marginBottom: 8 }}>
                             {Bookingdata.CheckOut}</Text>
-                          <Text style={{ color: 'black', fontSize: 12, fontWeight: 'bold', marginBottom: 8 }}>
-                            {Bookingdata.BookingNumber}</Text>
+                         
                         </Body>
                       </Right>
                     </CardItem>

@@ -77,17 +77,7 @@ export default class Today extends React.Component {
 
   ClickDay = async(text, dates) => {
 
-    try{
-      AsyncStorage.setItem('BookingSuccessDetails', null);
-      let BookingSuccessDetails_ = await AsyncStorage.getItem('BookingSuccessDetails');
-      let BookingSuccessDetails = JSON.parse(BookingSuccessDetails_);
-      console.log('Booking');
-      console.log(BookingSuccessDetails);
-      console.log('Booking');
-
-      }catch(e){
-        console.log(e);
-      }
+   
     let today_ = new Date();
     const today_Date = today_.getFullYear() + '-' + (today_.getMonth() + 1) + '-' + (today_.getDate());
 

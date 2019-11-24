@@ -131,7 +131,7 @@ android {
         applicationId "com.yohobed.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 34
+        versionCode 35
         versionName "1"
     }
      signingConfigs {

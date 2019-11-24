@@ -58,7 +58,6 @@ export default class SignUp extends Component {
         name: 'Yoho Villa',
         CheckIn: '2019/10/15',
         CheckOut: '2019/10/15',
-        BookingNumber: '115552244',
       },
       isLoading: false,
     };
@@ -70,6 +69,16 @@ export default class SignUp extends Component {
   static navigationOptions = {
     header: null,
   };
+
+  removeItemValue = async (key) => {
+    try {
+      await AsyncStorage.removeItem(key);
+      return true;
+    }
+    catch(exception) {
+      return false;
+    }
+  }
 
   saveData = async () => {
 
@@ -92,6 +101,7 @@ export default class SignUp extends Component {
       try {
         let BookingSuccessDetails_ = await AsyncStorage.getItem('BookingSuccessDetails');
         let BookingSuccessDetails = JSON.parse(BookingSuccessDetails_);
+        console.log(BookingSuccessDetails);
         this.setState({
           BookingSuccessDetail: BookingSuccessDetails
         });
@@ -121,7 +131,9 @@ export default class SignUp extends Component {
         })
         .then(res => {
           console.log(res.data);
-
+          this.setState({
+            isLoading: false,
+          });
           if (res.data.status == 'success') {
 
             let loginDetails = {
@@ -130,99 +142,27 @@ export default class SignUp extends Component {
               password: password,
             };
 
-
             AsyncStorage.setItem('loginDetails', JSON.stringify(loginDetails));
-            //service call
-
-
-            try {
-              console.log('*******');
-              console.log(this.state.BookingSuccessDetail);
-              console.log('*******');
-              // const customerId = initials.customerId;
-
-              let SendDataBookingSuccessDetails =
-                {
-                  room_id: this.state.BookingSuccessDetail.room_id,
-                  checkin: this.state.BookingSuccessDetail.checkin,
-                  checkout: this.state.BookingSuccessDetail.checkout,
-                  guests: 2,
-                  country: "Srilanka",
-                  rate_code: this.state.BookingSuccessDetail.rate_code,
-                  rooms: this.state.BookingSuccessDetail.rooms,
-                  mealplan: "Ro",
-                  amount: this.state.BookingSuccessDetail.amount,
-                  currency: "LKR",
-                  deal_amount: 0,
-                  customer_id: this.state.BookingSuccessDetail.customer_id
-                };
-
-
-              let url = 'http://core.yohobed.com/v1/general-api/public/api/mobile/add-mobile-reservation';
-              axios
-                .post(url, SendDataBookingSuccessDetails, {
-                  header: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                  },
-                })
-                .then(res => {
-                  console.log(res.data);
-                  this.setState({
-                    isLoading:false
-                  });
-                  if (res.data.status == 'success') {
-                    console.log(res.data.data.booking.booking_no);
-                    // console.log(res.data.encodedReference);
-                    let BookingDetailsSuccess = {
-                      order_id: res.data.data.booking.booking_no,
-                      items: res.data.data.booking.hotel_code,
-                      amount: this.state.BookingSuccessDetail.amount,
-                      name: res.data.data.booking.guest_name,
-                      email: res.data.data.booking.email_id,
-                      phone: res.data.data.booking.mobile_no,
-                    };
-
-                    AsyncStorage.setItem('BookingDetailsSuccess', JSON.stringify(BookingDetailsSuccess));
-
-                    this.setState({
-                      Bookingdata: {
-                        name:this.state.BookingSuccessDetail.hotel_name,
-                        CheckIn: this.state.BookingSuccessDetail.checkin,
-                        CheckOut: this.state.BookingSuccessDetail.checkout,
-                        BookingNumber: res.data.data.booking.booking_no,
-                      },
-                      scaleAnimationDialog: true
-                    });
-                  } else {
-
-                    Alert.alert('Booking Cancelled');
-
-                  }
-                })
-                .catch(e => {
-                  this.setState({
-                    isLoading:false
-                  });
-                  console.log(e);
-                  alert('Please Check your Internet connection');
-                });
-            } catch (e) {
-              // handle error
+      
+            if(this.state.BookingSuccessDetail == null){
+              console.log('set MainScreen');
+              this.props.navigation.navigate('MainScreen');
+            
+              Alert.alert('Successfully Registered');
+               
+             }else{
               this.setState({
-                isLoading:false
+                scaleAnimationDialog: true,
+                Bookingdata: {
+                  name:this.state.BookingSuccessDetail.hotel_name,
+                  CheckIn: this.state.BookingSuccessDetail.checkin,
+                  CheckOut: this.state.BookingSuccessDetail.checkout,
+                },  
               });
-              console.log(e);
-            }
-
-            //   this.props.navigation.navigate('Login');
+             }
 
           } else {
-            Alert.alert('Error while Login');
-
-            this.setState({
-              isLoading: false,
-            });
+            Alert.alert('Error while Sign up');
           }
         })
         .catch(e => {
@@ -239,6 +179,100 @@ export default class SignUp extends Component {
 
   }
 
+  ConfirmBooking = () =>{
+    console.log('confirm booking');
+    try {
+      console.log('*******');
+      console.log(this.state.BookingSuccessDetail);
+      console.log('*******');
+      // const customerId = initials.customerId;
+
+      this.setState({
+        isLoading:true,
+      });
+
+      let SendDataBookingSuccessDetails =
+        {
+          room_id: this.state.BookingSuccessDetail.room_id,
+          checkin: this.state.BookingSuccessDetail.checkin,
+          checkout: this.state.BookingSuccessDetail.checkout,
+          guests: 2,
+          country: "Srilanka",
+          rate_code: this.state.BookingSuccessDetail.rate_code,
+          rooms: this.state.BookingSuccessDetail.rooms,
+          mealplan: "Ro",
+          amount: this.state.BookingSuccessDetail.amount,
+          currency: "LKR",
+          deal_amount: 0,
+          customer_id: this.state.BookingSuccessDetail.customer_id
+        };
+
+      let url = 'http://core.yohobed.com/v1/general-api/public/api/mobile/add-mobile-reservation';
+      axios
+        .post(url, SendDataBookingSuccessDetails, {
+          header: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+          },
+        })
+        .then(res => {
+          console.log(res.data);
+          this.setState({
+            isLoading: false,
+          });
+          if (res.data.status == 'success') {
+           
+
+            console.log(res.data.data.booking.booking_no);
+            // console.log(res.data.encodedReference);
+            let BookingDetailsSuccess = {
+              order_id: res.data.data.booking.booking_no,
+              items: res.data.data.booking.hotel_code,
+              amount: this.state.BookingSuccessDetail.amount,
+              name: res.data.data.booking.guest_name,
+              email: res.data.data.booking.email_id,
+              phone: res.data.data.booking.mobile_no,
+            };
+
+           
+            AsyncStorage.setItem('BookingDetailsSuccess', JSON.stringify(BookingDetailsSuccess));
+            this.removeItemValue('BookingSuccessDetails');
+         
+            
+            
+            this.setState({
+               scaleAnimationDialog: false, 
+               defaultAnimationDialog: true,
+               BookingStatus:'Booking Success',
+              });
+           
+          } else {
+            
+            this.removeItemValue('BookingSuccessDetails');
+            this.setState({
+              scaleAnimationDialog: false, 
+              defaultAnimationDialog: true,
+              BookingStatus:'Booking Failed',
+             }); 
+          }
+        })
+        .catch(e => {
+          console.log(e);
+          this.setState({
+            isLoading:false
+          })
+          alert('Please Check your Internet connection');
+        });
+    } catch (e) {
+      this.setState({
+        isLoading:false
+      })
+
+      // handle error
+      console.log(e);
+    }
+  }
+ 
   componentWillUnmount() {
     this.keyboardDidShowSub.remove();
     this.keyboardDidHideSub.remove();
@@ -258,6 +292,7 @@ export default class SignUp extends Component {
   render() {
     const { shift } = this.state;
     const { Bookingdata } = this.state;
+  //  console.log(this.removeItemValue('BookingSuccessDetails'));
     //const {windowHeight } =Dimensions.get('window').height;
     return (
       <View style={styles.container}>
@@ -380,9 +415,7 @@ export default class SignUp extends Component {
               actions={[
                 <DialogButton
                   text="DISMISS"
-                  onPress={() => {
-                    this.setState({ scaleAnimationDialog: false });
-                  }}
+                  onPress={() => this.ConfirmBooking()}
                   key="button-1"
                 />,
               ]}>
@@ -399,8 +432,7 @@ export default class SignUp extends Component {
                             Check In</Text>
                           <Text style={{ color: 'blue', fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>
                             Check Out</Text>
-                          <Text style={{ color: 'blue', fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>
-                            Booking Number</Text>
+                         
                         </Body>
                       </Left>
                       <Right>
@@ -411,8 +443,7 @@ export default class SignUp extends Component {
                             {Bookingdata.CheckIn}</Text>
                           <Text style={{ color: 'black', fontSize: 12, fontWeight: 'bold', marginBottom: 8 }}>
                             {Bookingdata.CheckOut}</Text>
-                          <Text style={{ color: 'black', fontSize: 12, fontWeight: 'bold', marginBottom: 8 }}>
-                            {Bookingdata.BookingNumber}</Text>
+                          
                         </Body>
                       </Right>
                     </CardItem>
@@ -626,7 +657,7 @@ export default class SignUp extends Component {
 const styles = StyleSheet.create({
   cardViewStyle:{
      padding: 15 ,
-     height:Dimensions.get('window').height-200
+     height:Dimensions.get('window').height-50
   },
   container: {
     justifyContent: 'center',
